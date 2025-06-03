@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Groq Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f0f0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100%;
+      max-width: 100%;
+      background-color: #ffffff;
+    }
+
+    .chat-header {
+      background-color: #333;
+      color: #fff;
+      padding: 16px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .chat-log {
+      flex-grow: 1;
+      padding: 16px;
+      overflow-y: auto;
+      background-color: #fafafa;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      scroll-behavior: smooth;
+    }
+
+    .message {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      word-wrap: break-word;
+      font-size: 14px;
+      overflow-wrap: break-word;
+    }
+
+    .user {
+      align-self: flex-end;
+      background-color: #d1d1d1;
+      color: #000;
+      border-bottom-right-radius: 0;
+    }
+
+    .groq {
+      align-self: flex-start;
+      background-color: #fff;
+      color: #000;
+      border-bottom-left-radius: 0;
+      border: 1px solid #e0e0e0;
+    }
+
+    .chat-input {
+      display: flex;
+      border-top: 1px solid #ccc;
+    }
+
+    .chat-input input {
+      flex-grow: 1;
+      padding: 12px;
+      border: none;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .chat-input button {
+      padding: 12px 16px;
+      background-color: #333;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .chat-input button:hover {
+      background-color: #555;
+    }
+
+    /* Markdown styling */
+    .groq code {
+      background: #eee;
+      font-family: monospace;
+      padding: 2px 4px;
+      border-radius: 4px;
+      overflow-x: auto;
+      display: inline-block;
+      max-width: 100%;
+    }
+
+    .groq pre code {
+      display: block;
+      padding: 8px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .groq strong {
+      font-weight: bold;
+    }
+
+    .groq em {
+      font-style: italic;
+    }
+
+    .groq a {
+      color: #0066cc;
+      text-decoration: underline;
+      word-break: break-word;
+    }
+
+    .groq ul {
+      padding-left: 20px;
+      margin: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">Groq Chat</div>
+    <div id="log" class="chat-log"></div>
+    <div class="chat-input">
+      <input type="text" id="message" placeholder="Type your message..." autofocus />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <!-- Markdown parser -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <script>
+    const socket = new WebSocket("ws://provided-stayed.gl.at.ply.gg:65002");
+    const log = document.getElementById("log");
+    const input = document.getElementById("message");
+
+    socket.onopen = () => {
+      addMessage("✅ Connected to Groq WebSocket server", "groq");
+    };
+
+    socket.onmessage = (event) => {
+      const text = event.data;
+      if (text.startsWith("You: ")) {
+        addMessage(text.replace("You: ", ""), "user");
+      } else if (text.startsWith("Groq: ")) {
+        addMessage(text.replace("Groq: ", ""), "groq");
+      } else {
+        addMessage(text, "groq");
+      }
+    };
+
+    socket.onclose = () => {
+      addMessage("❌ Connection closed", "groq");
+    };
+
+    function addMessage(message, sender) {
+      const bubble = document.createElement("div");
+      bubble.classList.add("message", sender);
+
+      if (sender === "groq") {
+        bubble.innerHTML = marked.parse(message); // Markdown rendering
+      } else {
+        bubble.textContent = message;
+      }
+
+      log.appendChild(bubble);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function sendMessage() {
+      const msg = input.value.trim();
+      if (msg && socket.readyState === WebSocket.OPEN) {
+        socket.send(msg);
+        input.value = "";
+      }
+    }
+
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+  </script>
+</body>
+</html>
